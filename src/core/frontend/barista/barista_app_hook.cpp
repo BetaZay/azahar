@@ -876,7 +876,9 @@ DecodeMotion(const std::array<u8, 128>& report) {
     const int16_t raw_x = static_cast<int16_t>(report[17] | (report[18] << 8));
     const int16_t raw_y = static_cast<int16_t>(report[19] | (report[20] << 8));
 
-    Common::Vec3<float> accel{-static_cast<float>(raw_x) / 800.0f,
+    // Azahar's motion API defines X-positive as left. The GamePad report's
+    // lateral axis already follows that convention, so do not negate it.
+    Common::Vec3<float> accel{static_cast<float>(raw_x) / 800.0f,
                               -static_cast<float>(raw_y) / 800.0f,
                               static_cast<float>(raw_z) / 800.0f};
 
@@ -885,7 +887,7 @@ DecodeMotion(const std::array<u8, 128>& report) {
     const int32_t yaw = s24_le_to_int32(&report[27]);
 
     constexpr float gyro_scale = (200.0f * 6.0f) / 154000.0f;
-    Common::Vec3<float> gyro{roll * gyro_scale, pitch * gyro_scale, yaw * gyro_scale};
+    Common::Vec3<float> gyro{-roll * gyro_scale, pitch * gyro_scale, yaw * gyro_scale};
 
     return {accel, gyro};
 #else
