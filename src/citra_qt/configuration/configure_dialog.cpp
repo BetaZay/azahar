@@ -5,6 +5,7 @@
 #include <map>
 #include <QListWidgetItem>
 #include "citra_qt/configuration/configure_audio.h"
+#include "citra_qt/configuration/configure_barista.h"
 #include "citra_qt/configuration/configure_camera.h"
 #include "citra_qt/configuration/configure_debug.h"
 #include "citra_qt/configuration/configure_dialog.h"
@@ -42,7 +43,8 @@ ConfigureDialog::ConfigureDialog(QWidget* parent, HotkeyRegistry& registry_, Cor
       camera_tab{std::make_unique<ConfigureCamera>(this)},
       debug_tab{std::make_unique<ConfigureDebug>(is_powered_on, this)},
       storage_tab{std::make_unique<ConfigureStorage>(is_powered_on, this)},
-      web_tab{std::make_unique<ConfigureWeb>(this)}, ui_tab{std::make_unique<ConfigureUi>(this)} {
+      web_tab{std::make_unique<ConfigureWeb>(this)}, ui_tab{std::make_unique<ConfigureUi>(this)},
+      barista_tab{std::make_unique<ConfigureBarista>(this)} {
     Settings::SetConfiguringGlobal(true);
 
     ui->setupUi(this);
@@ -61,6 +63,7 @@ ConfigureDialog::ConfigureDialog(QWidget* parent, HotkeyRegistry& registry_, Cor
     ui->tabWidget->addTab(storage_tab.get(), tr("Storage"));
     ui->tabWidget->addTab(web_tab.get(), tr("Network"));
     ui->tabWidget->addTab(ui_tab.get(), tr("UI"));
+    ui->tabWidget->addTab(barista_tab.get(), tr("Barista"));
 
     hotkeys_tab->Populate(registry);
     hotkeys_controller_tab->Populate(registry);
@@ -99,6 +102,7 @@ void ConfigureDialog::SetConfiguration() {
     web_tab->SetConfiguration();
     ui_tab->SetConfiguration();
     storage_tab->SetConfiguration();
+    barista_tab->SetConfiguration();
 }
 
 void ConfigureDialog::ApplyConfiguration() {
@@ -117,6 +121,7 @@ void ConfigureDialog::ApplyConfiguration() {
     web_tab->ApplyConfiguration();
     ui_tab->ApplyConfiguration();
     storage_tab->ApplyConfiguration();
+    barista_tab->ApplyConfiguration();
     system.ApplySettings();
     Settings::LogSettings();
 }
@@ -126,12 +131,13 @@ Q_DECLARE_METATYPE(QList<QWidget*>);
 void ConfigureDialog::PopulateSelectionList() {
     ui->selectorList->clear();
 
-    const std::array<std::pair<QString, QList<QWidget*>>, 5> items{
+    const std::array<std::pair<QString, QList<QWidget*>>, 6> items{
         {{tr("General"), {general_tab.get(), web_tab.get(), debug_tab.get(), ui_tab.get()}},
          {tr("System"), {system_tab.get(), camera_tab.get(), storage_tab.get()}},
          {tr("Graphics"), {enhancements_tab.get(), layout_tab.get(), graphics_tab.get()}},
          {tr("Audio"), {audio_tab.get()}},
-         {tr("Controls"), {input_tab.get(), hotkeys_controller_tab.get(), hotkeys_tab.get()}}}};
+         {tr("Controls"), {input_tab.get(), hotkeys_controller_tab.get(), hotkeys_tab.get()}},
+         {tr("Barista"), {barista_tab.get()}}}};
 
     for (const auto& entry : items) {
         auto* const item = new QListWidgetItem(entry.first);
@@ -172,6 +178,7 @@ void ConfigureDialog::RetranslateUI() {
     web_tab->RetranslateUI();
     ui_tab->RetranslateUI();
     storage_tab->RetranslateUI();
+    barista_tab->RetranslateUI();
 }
 
 void ConfigureDialog::UpdateVisibleTabs() {
@@ -193,7 +200,8 @@ void ConfigureDialog::UpdateVisibleTabs() {
         {debug_tab.get(), tr("Debug")},
         {storage_tab.get(), tr("Storage")},
         {web_tab.get(), tr("Network")},
-        {ui_tab.get(), tr("UI")}};
+        {ui_tab.get(), tr("UI")},
+        {barista_tab.get(), tr("Barista")}};
 
     ui->tabWidget->clear();
 

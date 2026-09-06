@@ -93,6 +93,7 @@ private:
     void ConfigureRenderPipeline();
     void PrepareRendertarget();
     void RenderScreenshot();
+    void RenderBaristaFrame();
     void RenderScreenshotWithStagingCopy();
     bool TryRenderScreenshotWithHostMemory();
     void PrepareDraw(Frame* frame, const Layout::FramebufferLayout& layout);

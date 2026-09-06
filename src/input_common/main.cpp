@@ -11,6 +11,7 @@
 #include "input_common/gcadapter/gc_adapter.h"
 #include "input_common/gcadapter/gc_poller.h"
 #endif
+#include "input_common/barista.h"
 #include "input_common/keyboard.h"
 #include "input_common/main.h"
 #include "input_common/motion_emu.h"
@@ -47,6 +48,14 @@ void Init() {
     Input::RegisterFactory<Input::MotionDevice>("motion_emu", motion_emu);
     Input::RegisterFactory<Input::TouchDevice>("touch_from_button",
                                                std::make_shared<TouchFromButtonFactory>());
+    Input::RegisterFactory<Input::ButtonDevice>("barista",
+                                                std::make_shared<BaristaButtonFactory>());
+    Input::RegisterFactory<Input::AnalogDevice>("barista",
+                                                std::make_shared<BaristaAnalogFactory>());
+    Input::RegisterFactory<Input::TouchDevice>("barista",
+                                               std::make_shared<BaristaTouchFactory>());
+    Input::RegisterFactory<Input::MotionDevice>("barista",
+                                                std::make_shared<BaristaMotionFactory>());
 
     sdl = SDL::Init();
 
@@ -60,6 +69,10 @@ void Shutdown() {
     gcbuttons.reset();
     gcanalog.reset();
 #endif
+    Input::UnregisterFactory<Input::ButtonDevice>("barista");
+    Input::UnregisterFactory<Input::AnalogDevice>("barista");
+    Input::UnregisterFactory<Input::TouchDevice>("barista");
+    Input::UnregisterFactory<Input::MotionDevice>("barista");
     Input::UnregisterFactory<Input::ButtonDevice>("keyboard");
     keyboard.reset();
     Input::UnregisterFactory<Input::AnalogDevice>("analog_from_button");
@@ -118,6 +131,16 @@ std::string ButtonToText(const Common::ParamPackage& param) {
         return "keyboard code " + param.Get("code", 0);
     }
 
+    if (engine_str == "barista") {
+        if (param.Has("button")) {
+            return "GamePad " + param.Get("button", "");
+        }
+        if (param.Has("axis")) {
+            return "GamePad " + param.Get("axis", "");
+        }
+        return "GamePad";
+    }
+
     return "[unknown]";
 }
 
@@ -127,6 +150,10 @@ std::string AnalogToText(const Common::ParamPackage& param, const std::string& d
     }
 
     const auto engine_str = param.Get("engine", "");
+    if (engine_str == "barista") {
+        return "GamePad " + param.Get("axis", "Stick");
+    }
+
     if (engine_str == "analog_from_button") {
         return ButtonToText(Common::ParamPackage{param.Get(dir, "")});
     }
@@ -257,6 +284,10 @@ std::vector<std::unique_ptr<DevicePoller>> GetPollers(DeviceType type) {
         break;
     }
 #endif
+
+    auto barista_pollers = GetBaristaPollers(type);
+    pollers.insert(pollers.end(), std::make_move_iterator(barista_pollers.begin()),
+                   std::make_move_iterator(barista_pollers.end()));
 
     return pollers;
 }

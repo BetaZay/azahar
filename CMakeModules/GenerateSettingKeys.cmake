@@ -6,6 +6,10 @@
 
 # Shared setting keys (multi-platform)
 foreach(KEY IN ITEMS
+    "barista_enabled"
+    "barista_socket_path"
+    "barista_screen_mode"
+    "barista_enable_input"
     "use_artic_base_controller"
     "enable_gamemode"
     "use_cpu_jit"

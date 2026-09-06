@@ -34,6 +34,9 @@ add_library(citra_qt STATIC EXCLUDE_FROM_ALL
     configuration/configure.ui
     configuration/configuration_shared.cpp
     configuration/configuration_shared.h
+    configuration/configure_barista.cpp
+    configuration/configure_barista.h
+    configuration/configure_barista.ui
     configuration/configure_audio.cpp
     configuration/configure_audio.h
     configuration/configure_audio.ui

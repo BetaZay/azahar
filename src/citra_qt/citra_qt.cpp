@@ -105,6 +105,7 @@
 #include "core/file_sys/archive_extsavedata.h"
 #include "core/file_sys/archive_source_sd_savedata.h"
 #include "core/frontend/applets/default_applets.h"
+#include "core/frontend/barista/barista_app_hook.h"
 #include "core/hle/service/am/am.h"
 #include "core/hle/service/fs/archive.h"
 #include "core/hle/service/nfc/nfc.h"
@@ -535,6 +536,47 @@ GMainWindow::GMainWindow(Core::System& system_)
     physical_devices = GetVulkanPhysicalDevices();
 #endif
 
+    // Initialize Barista Wii U GamePad integration
+    {
+        std::vector<u8> canvas(864 * 480 * 3, 24);
+        QImage logo(QStringLiteral(":/icons/default/256x256/azahar.png"));
+        if (!logo.isNull()) {
+            QImage scaled = logo.scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation)
+                                .convertToFormat(QImage::Format_RGBA8888);
+            const int start_x = (864 - scaled.width()) / 2;
+            const int start_y = (480 - scaled.height()) / 2;
+            for (int y = 0; y < scaled.height(); ++y) {
+                const u8* src_line = scaled.constScanLine(y);
+                for (int x = 0; x < scaled.width(); ++x) {
+                    const u8 r = src_line[x * 4 + 0];
+                    const u8 g = src_line[x * 4 + 1];
+                    const u8 b = src_line[x * 4 + 2];
+                    const u8 a = src_line[x * 4 + 3];
+                    if (a == 0) {
+                        continue;
+                    }
+                    const size_t dst = ((y + start_y) * 864 + (x + start_x)) * 3;
+                    if (a == 255) {
+                        canvas[dst + 0] = r;
+                        canvas[dst + 1] = g;
+                        canvas[dst + 2] = b;
+                    } else {
+                        const float alpha = a / 255.0f;
+                        canvas[dst + 0] =
+                            static_cast<u8>(r * alpha + canvas[dst + 0] * (1.0f - alpha));
+                        canvas[dst + 1] =
+                            static_cast<u8>(g * alpha + canvas[dst + 1] * (1.0f - alpha));
+                        canvas[dst + 2] =
+                            static_cast<u8>(b * alpha + canvas[dst + 2] * (1.0f - alpha));
+                    }
+                }
+            }
+        }
+        BaristaAppHook::Initialize(std::move(canvas), 864, 480,
+                                   Settings::values.barista_socket_path.GetValue(),
+                                   Settings::values.barista_enabled.GetValue());
+    }
+
     if (!game_path.isEmpty()) {
         BootGame(game_path);
     }
@@ -548,6 +590,7 @@ GMainWindow::~GMainWindow() {
 
     Pica::g_debug_context.reset();
     Network::Shutdown();
+    BaristaAppHook::Shutdown();
 }
 
 void GMainWindow::InitializeWidgets() {
@@ -1614,6 +1657,7 @@ void GMainWindow::BootGame(const QString& filename) {
     loading_screen->show();
 
     emulation_running = true;
+    BaristaAppHook::SetGameActive(true);
     if (ui->action_Fullscreen->isChecked()) {
         ShowFullscreen();
     }
@@ -1711,6 +1755,7 @@ void GMainWindow::ShutdownGame() {
     UpdateSaveStates();
 
     emulation_running = false;
+    BaristaAppHook::SetGameActive(false);
 
     game_title.clear();
     UpdateWindowTitle();
@@ -4048,6 +4093,7 @@ void GMainWindow::closeEvent(QCloseEvent* event) {
     secondary_window->close();
     multiplayer_state->Close();
     InputCommon::Shutdown();
+    BaristaAppHook::Shutdown();
     QWidget::closeEvent(event);
 }
 

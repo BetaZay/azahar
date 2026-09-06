@@ -108,6 +108,13 @@ enum class StereoWhichDisplay : u32 {
     SecondaryOnly = 3
 };
 
+enum class BaristaScreenMode : u32 {
+    BottomScreen = 0,
+    TopScreen = 1,
+    SideBySide = 2,
+    TopBottom = 3,
+};
+
 enum class AudioEmulation : u32 {
     HLE = 0,
     LLE = 1,
@@ -680,6 +687,13 @@ struct Values {
     std::string audio_encoder;
     std::string audio_encoder_options;
     u64 audio_bitrate;
+
+    // Barista (Wii U GamePad Integration)
+    Setting<bool> barista_enabled{false, Keys::barista_enabled};
+    Setting<std::string> barista_socket_path{"", Keys::barista_socket_path};
+    Setting<BaristaScreenMode> barista_screen_mode{BaristaScreenMode::BottomScreen,
+                                                   Keys::barista_screen_mode};
+    Setting<bool> barista_enable_input{true, Keys::barista_enable_input};
 };
 
 extern Values values;

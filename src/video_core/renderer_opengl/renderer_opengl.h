@@ -59,6 +59,7 @@ private:
     void ReloadShader(Settings::StereoRenderOption render_3d);
     void PrepareRendertarget();
     void RenderScreenshot();
+    void RenderBaristaFrame();
     void RenderToMailbox(const Layout::FramebufferLayout& layout,
                          std::unique_ptr<Frontend::TextureMailbox>& mailbox, bool flipped);
     void ConfigureFramebufferTexture(TextureInfo& texture,
@@ -92,6 +93,8 @@ private:
     OGLBuffer vertex_buffer;
     OGLProgram shader;
     OGLFramebuffer screenshot_framebuffer;
+    OGLFramebuffer barista_framebuffer;
+    GLuint barista_color_renderbuffer = 0;
     std::array<OGLSampler, 2> samplers;
 
     // Display information for top and bottom screens respectively

@@ -6,6 +6,7 @@
 #include "common/alignment.h"
 #include "common/settings.h"
 #include "core/core_timing.h"
+#include "core/frontend/barista/barista_app_hook.h"
 #include "core/hle/service/hid/hid.h"
 #include "core/hle/service/ir/extra_hid.h"
 #include "core/movie.h"
@@ -262,13 +263,32 @@ void ExtraHID::SendHIDStatus() {
     } else {
         float x, y;
         std::tie(x, y) = c_stick->GetStatus();
+        bool zl_pressed = zl->GetStatus();
+        bool zr_pressed = zr->GetStatus();
+
+        std::array<u8, 128> barista_report{};
+        const bool has_barista_input = Settings::values.barista_enable_input.GetValue() &&
+                                       BaristaAppHook::ReadInput(barista_report);
+        if (has_barista_input) {
+            auto [bx, by] = BaristaAppHook::DecodeStick(barista_report, true);
+            if (std::abs(bx) > 0.05f || std::abs(by) > 0.05f) {
+                x = bx;
+                y = by;
+            }
+            if (BaristaAppHook::IsButtonPressed(barista_report, BaristaAppHook::Button::ZL)) {
+                zl_pressed = true;
+            }
+            if (BaristaAppHook::IsButtonPressed(barista_report, BaristaAppHook::Button::ZR)) {
+                zr_pressed = true;
+            }
+        }
 
         response.c_stick.header.Assign(static_cast<u8>(ResponseID::PollHID));
         response.c_stick.c_stick_x.Assign(static_cast<u32>(C_STICK_CENTER + C_STICK_RADIUS * x));
         response.c_stick.c_stick_y.Assign(static_cast<u32>(C_STICK_CENTER + C_STICK_RADIUS * y));
         response.buttons.battery_level.Assign(0x1F);
-        response.buttons.zl_not_held.Assign(!zl->GetStatus());
-        response.buttons.zr_not_held.Assign(!zr->GetStatus());
+        response.buttons.zl_not_held.Assign(!zl_pressed);
+        response.buttons.zr_not_held.Assign(!zr_pressed);
         response.buttons.r_not_held.Assign(1);
         response.unknown = 0;
     }

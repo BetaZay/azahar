@@ -8,6 +8,7 @@
 #include "common/settings.h"
 #include "core/core.h"
 #include "core/core_timing.h"
+#include "core/frontend/barista/barista_app_hook.h"
 #include "core/hle/ipc_helpers.h"
 #include "core/hle/kernel/event.h"
 #include "core/hle/kernel/shared_memory.h"
@@ -95,6 +96,22 @@ void IR_RST::UpdateCallback(std::uintptr_t user_data, s64 cycles_late) {
         // Get current c-stick position and update c-stick direction
         float c_stick_x_f, c_stick_y_f;
         std::tie(c_stick_x_f, c_stick_y_f) = c_stick->GetStatus();
+
+        std::array<u8, 128> barista_report{};
+        const bool has_barista_input = Settings::values.barista_enable_input.GetValue() &&
+                                       BaristaAppHook::ReadInput(barista_report);
+        if (has_barista_input) {
+            if (BaristaAppHook::IsButtonPressed(barista_report, BaristaAppHook::Button::ZL))
+                state.zl.Assign(1);
+            if (BaristaAppHook::IsButtonPressed(barista_report, BaristaAppHook::Button::ZR))
+                state.zr.Assign(1);
+            auto [bx, by] = BaristaAppHook::DecodeStick(barista_report, true);
+            if (std::abs(bx) > 0.05f || std::abs(by) > 0.05f) {
+                c_stick_x_f = bx;
+                c_stick_y_f = by;
+            }
+        }
+
         constexpr int MAX_CSTICK_RADIUS = 0x9C; // Max value for a c-stick radius
         c_stick_x = static_cast<s16>(c_stick_x_f * MAX_CSTICK_RADIUS);
         c_stick_y = static_cast<s16>(c_stick_y_f * MAX_CSTICK_RADIUS);

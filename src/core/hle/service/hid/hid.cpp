@@ -12,6 +12,7 @@
 #include "common/logging/log.h"
 #include "core/3ds.h"
 #include "core/core.h"
+#include "core/frontend/barista/barista_app_hook.h"
 #include "core/hle/ipc_helpers.h"
 #include "core/hle/kernel/event.h"
 #include "core/hle/kernel/handle_table.h"
@@ -217,9 +218,38 @@ void Module::UpdatePadCallback(std::uintptr_t user_data, s64 cycles_late) {
         state.debug.Assign(buttons[Debug - BUTTON_HID_BEGIN]->GetStatus());
         state.gpio14.Assign(buttons[Gpio14 - BUTTON_HID_BEGIN]->GetStatus());
 
+        std::array<u8, 128> barista_report{};
+        const bool has_barista_input = Settings::values.barista_enable_input.GetValue() &&
+                                       BaristaAppHook::ReadInput(barista_report);
+        if (has_barista_input) {
+            const auto pressed = [&barista_report](BaristaAppHook::Button button) {
+                return BaristaAppHook::IsButtonPressed(barista_report, button);
+            };
+            if (pressed(BaristaAppHook::Button::A)) state.a.Assign(1);
+            if (pressed(BaristaAppHook::Button::B)) state.b.Assign(1);
+            if (pressed(BaristaAppHook::Button::X)) state.x.Assign(1);
+            if (pressed(BaristaAppHook::Button::Y)) state.y.Assign(1);
+            if (pressed(BaristaAppHook::Button::Right)) state.right.Assign(1);
+            if (pressed(BaristaAppHook::Button::Left)) state.left.Assign(1);
+            if (pressed(BaristaAppHook::Button::Up)) state.up.Assign(1);
+            if (pressed(BaristaAppHook::Button::Down)) state.down.Assign(1);
+            if (pressed(BaristaAppHook::Button::L)) state.l.Assign(1);
+            if (pressed(BaristaAppHook::Button::R)) state.r.Assign(1);
+            if (pressed(BaristaAppHook::Button::Start)) state.start.Assign(1);
+            if (pressed(BaristaAppHook::Button::Select)) state.select.Assign(1);
+        }
+
         // Get current circle pad position and update circle pad direction
         float circle_pad_x_f, circle_pad_y_f;
         std::tie(circle_pad_x_f, circle_pad_y_f) = circle_pad->GetStatus();
+
+        if (has_barista_input) {
+            auto [bx, by] = BaristaAppHook::DecodeStick(barista_report, false);
+            if (std::abs(bx) > 0.05f || std::abs(by) > 0.05f) {
+                circle_pad_x_f = bx;
+                circle_pad_y_f = by;
+            }
+        }
 
         // xperia64: 0x9A seems to be the calibrated limit of the circle pad
         // Verified by using Input Redirector with very large-value digital inputs
@@ -289,6 +319,9 @@ void Module::UpdatePadCallback(std::uintptr_t user_data, s64 cycles_late) {
         if (!pressed && controller_touch_device) {
             std::tie(x, y, pressed) = controller_touch_device->GetStatus();
         }
+        if (!pressed && has_barista_input) {
+            pressed = BaristaAppHook::DecodeTouch(barista_report, x, y);
+        }
         touch_entry.x = static_cast<u16>(x * Core::kScreenBottomWidth);
         touch_entry.y = static_cast<u16>(y * Core::kScreenBottomHeight);
         touch_entry.valid.Assign(pressed ? 1 : 0);
@@ -339,6 +372,15 @@ void Module::UpdateAccelerometerCallback(std::uintptr_t user_data, s64 cycles_la
         Common::Vec3<float> accel;
         std::tie(accel, std::ignore) = motion_device->GetStatus();
         accel *= accelerometer_coef;
+        std::array<u8, 128> barista_report{};
+        const bool has_barista_input = Settings::values.barista_enable_input.GetValue() &&
+                                       BaristaAppHook::ReadInput(barista_report);
+        if (has_barista_input) {
+            auto [baccel, bgyro] = BaristaAppHook::DecodeMotion(barista_report);
+            if (baccel.x != 0.0f || baccel.y != 0.0f || baccel.z != 0.0f) {
+                accel = baccel * accelerometer_coef;
+            }
+        }
         // TODO(wwylele): do a time stretch like the one in UpdateGyroscopeCallback
         // The time stretch formula should be like
         // stretched_vector = (raw_vector - gravity) * stretch_ratio + gravity
@@ -390,6 +432,15 @@ void Module::UpdateGyroscopeCallback(std::uintptr_t user_data, s64 cycles_late) 
     } else {
         Common::Vec3<float> gyro;
         std::tie(std::ignore, gyro) = motion_device->GetStatus();
+        std::array<u8, 128> barista_report{};
+        const bool has_barista_input = Settings::values.barista_enable_input.GetValue() &&
+                                       BaristaAppHook::ReadInput(barista_report);
+        if (has_barista_input) {
+            auto [baccel, bgyro] = BaristaAppHook::DecodeMotion(barista_report);
+            if (bgyro.x != 0.0f || bgyro.y != 0.0f || bgyro.z != 0.0f) {
+                gyro = bgyro;
+            }
+        }
         double stretch = system.perf_stats->GetLastFrameTimeScale();
         gyro *= gyroscope_coef * static_cast<float>(stretch);
         gyroscope_entry.x = static_cast<s16>(gyro.x);

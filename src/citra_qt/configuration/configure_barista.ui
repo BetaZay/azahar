@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConfigureBarista</class>
+ <widget class="QWidget" name="ConfigureBarista">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>680</width>
+    <height>540</height>
+   </rect>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="group_general">
+     <property name="title">
+      <string>General</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_general">
+      <item>
+       <widget class="QCheckBox" name="checkbox_enabled">
+        <property name="text">
+         <string>Enable Barista Wii U GamePad integration</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkbox_input">
+        <property name="text">
+         <string>Enable GamePad controller &amp; touchscreen input</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="layout_socket">
+        <item>
+         <widget class="QLabel" name="label_socket">
+          <property name="text">
+           <string>Socket path:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="edit_socket_path">
+          <property name="placeholderText">
+           <string>(default: /run/barista/media-&lt;uid&gt;.sock)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="button_browse_socket">
+          <property name="text">
+           <string>Browse...</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="button_reset_socket">
+          <property name="text">
+           <string>Reset</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="group_display">
+     <property name="title">
+      <string>Display Mode</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_display">
+      <item>
+       <layout class="QHBoxLayout" name="layout_mode">
+        <item>
+         <widget class="QLabel" name="label_mode">
+          <property name="text">
+           <string>GamePad Screen Mode:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="combo_screen_mode">
+          <item>
+           <property name="text">
+            <string>Bottom Screen (Touchscreen on GamePad) [Recommended]</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Top Screen</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Both Screens (Side by Side)</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Both Screens (Top / Bottom)</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QLabel" name="label_screen_mode_desc">
+        <property name="text">
+         <string>Mode description</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="group_status">
+     <property name="title">
+      <string>Status &amp; Diagnostics</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_status">
+      <item>
+       <layout class="QGridLayout" name="gridLayout_status">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_conn_title">
+          <property name="text">
+           <string>Connection:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLabel" name="label_status_conn">
+          <property name="text">
+           <string>Disconnected</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_sock_title">
+          <property name="text">
+           <string>Socket file:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLabel" name="label_status_sock">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_stream_title">
+          <property name="text">
+           <string>Streaming:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLabel" name="label_status_stream">
+          <property name="text">
+           <string>Inactive</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="label_input_title">
+          <property name="text">
+           <string>GamePad Input:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLabel" name="label_status_input">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_stats_title">
+          <property name="text">
+           <string>Statistics:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLabel" name="label_status_stats">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="layout_status_buttons">
+        <item>
+         <widget class="QPushButton" name="button_reconnect">
+          <property name="text">
+           <string>Reconnect</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="button_refresh">
+          <property name="text">
+           <string>Refresh Status</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_info">
+     <property name="text">
+      <string>Barista is a Wii U GamePad client and server daemon for Linux.&lt;br&gt;Download Barista and learn more at &lt;a href=&quot;https://github.com/Kaio/Barista&quot;&gt;https://github.com/Kaio/Barista&lt;/a&gt;.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

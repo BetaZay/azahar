@@ -6,6 +6,7 @@
 #include "common/microprofile.h"
 #include "common/settings.h"
 #include "core/core.h"
+#include "core/frontend/barista/barista_app_hook.h"
 #include "core/frontend/emu_window.h"
 #include "core/frontend/framebuffer_layout.h"
 #include "core/memory.h"
@@ -86,7 +87,13 @@ RendererOpenGL::RendererOpenGL(Core::System& system, Pica::PicaCore& pica_,
     InitOpenGLObjects();
 }
 
-RendererOpenGL::~RendererOpenGL() = default;
+RendererOpenGL::~RendererOpenGL() {
+    if (barista_color_renderbuffer) {
+        glDeleteRenderbuffers(1, &barista_color_renderbuffer);
+        barista_color_renderbuffer = 0;
+    }
+    barista_framebuffer.Release();
+}
 
 void RendererOpenGL::SwapBuffers() {
     system.perf_stats->StartSwap();
@@ -112,6 +119,7 @@ void RendererOpenGL::SwapBuffers() {
 
     PrepareRendertarget();
     RenderScreenshot();
+    RenderBaristaFrame();
     isSecondaryWindow = false;
 #ifdef HAVE_LIBRETRO
     DrawScreens(render_window.GetFramebufferLayout(), false);
@@ -185,6 +193,49 @@ void RendererOpenGL::RenderScreenshot() {
 
         settings.screenshot_complete_callback(true);
     }
+}
+
+void RendererOpenGL::RenderBaristaFrame() {
+#if defined(__linux__) || defined(BOOST_OS_LINUX)
+    if (!BaristaAppHook::WantsFrame()) {
+        return;
+    }
+
+    const auto layout = BaristaAppHook::GetLayout();
+    const u32 width = layout.width;
+    const u32 height = layout.height;
+
+    if (!barista_framebuffer.handle) {
+        barista_framebuffer.Create();
+        glGenRenderbuffers(1, &barista_color_renderbuffer);
+        glBindRenderbuffer(GL_RENDERBUFFER, barista_color_renderbuffer);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB8, width, height);
+        glBindFramebuffer(GL_FRAMEBUFFER, barista_framebuffer.handle);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
+                                  barista_color_renderbuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    GLuint old_read_fb = state.draw.read_framebuffer;
+    GLuint old_draw_fb = state.draw.draw_framebuffer;
+    state.draw.read_framebuffer = state.draw.draw_framebuffer = barista_framebuffer.handle;
+    state.Apply();
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    DrawScreens(layout, true);
+
+    std::vector<u8> rgb(width * height * 3);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, rgb.data());
+
+    state.draw.read_framebuffer = old_read_fb;
+    state.draw.draw_framebuffer = old_draw_fb;
+    state.Apply();
+
+    BaristaAppHook::SubmitFrame(std::move(rgb), width, height);
+#endif
 }
 
 void RendererOpenGL::PrepareRendertarget() {

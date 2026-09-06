@@ -1,4 +1,4 @@
-﻿// Copyright Citra Emulator Project / Azahar Emulator Project
+// Copyright Citra Emulator Project / Azahar Emulator Project
 // Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
@@ -51,6 +51,7 @@ private:
     void ReadUtilityValues();
     void ReadWebServiceValues();
     void ReadVideoDumpingValues();
+    void ReadBaristaValues();
 
     void SaveValues();
     void SaveAudioValues();
@@ -72,6 +73,7 @@ private:
     void SaveUtilityValues();
     void SaveWebServiceValues();
     void SaveVideoDumpingValues();
+    void SaveBaristaValues();
 
     /**
      * Reads a setting from the qt_config.

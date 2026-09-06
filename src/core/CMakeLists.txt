@@ -115,6 +115,8 @@ add_library(citra_core STATIC EXCLUDE_FROM_ALL
     frontend/applets/mii_selector.h
     frontend/applets/swkbd.cpp
     frontend/applets/swkbd.h
+    frontend/barista/barista_app_hook.cpp
+    frontend/barista/barista_app_hook.h
     frontend/camera/blank_camera.cpp
     frontend/camera/blank_camera.h
     frontend/camera/factory.cpp

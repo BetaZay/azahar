@@ -8,6 +8,7 @@
 #include "common/microprofile.h"
 #include "common/settings.h"
 #include "core/core.h"
+#include "core/frontend/barista/barista_app_hook.h"
 #include "core/frontend/emu_window.h"
 #include "video_core/gpu.h"
 #include "video_core/pica/pica_core.h"
@@ -1146,6 +1147,7 @@ void RendererVulkan::SwapBuffers() {
     const Layout::FramebufferLayout& layout = render_window.GetFramebufferLayout();
     PrepareRendertarget();
     RenderScreenshot();
+    RenderBaristaFrame();
     isSecondaryWindow = false;
     RenderToWindow(main_present_window, layout, false);
 #ifndef ANDROID
@@ -1181,6 +1183,106 @@ void RendererVulkan::SwapBuffers() {
     system.perf_stats->EndSwap();
     rasterizer.TickFrame();
     EndFrame();
+}
+
+void RendererVulkan::RenderBaristaFrame() {
+#if defined(__linux__) || defined(BOOST_OS_LINUX)
+    if (!BaristaAppHook::WantsFrame()) {
+        return;
+    }
+
+    const Layout::FramebufferLayout layout{BaristaAppHook::GetLayout()};
+    const u32 width = layout.width;
+    const u32 height = layout.height;
+    const vk::Device device = instance.GetDevice();
+    const vk::BufferCreateInfo buffer_info = {
+        .size = static_cast<vk::DeviceSize>(width) * height * 4,
+        .usage = vk::BufferUsageFlagBits::eTransferDst,
+    };
+    const VmaAllocationCreateInfo allocation_info = {
+        .flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT |
+                 VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+        .usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
+        .requiredFlags = 0,
+        .preferredFlags = 0,
+        .pool = VK_NULL_HANDLE,
+        .pUserData = nullptr,
+    };
+
+    VkBuffer raw_buffer{};
+    VmaAllocation allocation{};
+    VmaAllocationInfo mapped_info{};
+    const VkBufferCreateInfo raw_buffer_info = static_cast<VkBufferCreateInfo>(buffer_info);
+    if (vmaCreateBuffer(instance.GetAllocator(), &raw_buffer_info, &allocation_info, &raw_buffer,
+                        &allocation, &mapped_info) != VK_SUCCESS) {
+        LOG_WARNING(Render_Vulkan, "Could not allocate Barista video readback buffer");
+        return;
+    }
+
+    Frame frame{};
+    main_present_window.RecreateFrame(&frame, width, height);
+    clear_color.float32[0] = 0.0f;
+    clear_color.float32[1] = 0.0f;
+    clear_color.float32[2] = 0.0f;
+    clear_color.float32[3] = 1.0f;
+    DrawScreens(&frame, layout, false);
+
+    const vk::Buffer buffer{raw_buffer};
+    scheduler.Record([source_image = frame.image, buffer, width, height](vk::CommandBuffer cmdbuf) {
+        const vk::ImageMemoryBarrier image_barrier = {
+            .srcAccessMask = vk::AccessFlagBits::eMemoryWrite,
+            .dstAccessMask = vk::AccessFlagBits::eTransferRead,
+            .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = source_image,
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = VK_REMAINING_MIP_LEVELS,
+                .baseArrayLayer = 0,
+                .layerCount = VK_REMAINING_ARRAY_LAYERS,
+            },
+        };
+        const vk::BufferImageCopy copy = {
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .imageOffset = {0, 0, 0},
+            .imageExtent = {width, height, 1},
+        };
+        cmdbuf.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
+                               vk::PipelineStageFlagBits::eTransfer,
+                               vk::DependencyFlagBits::eByRegion, {}, {}, image_barrier);
+        cmdbuf.copyImageToBuffer(source_image, vk::ImageLayout::eTransferSrcOptimal, buffer,
+                                 copy);
+    });
+    scheduler.Finish();
+
+    const bool rgba = main_present_window.GetSurfaceFormat() == vk::Format::eR8G8B8A8Unorm;
+    const auto* source = static_cast<const u8*>(mapped_info.pMappedData);
+    std::vector<u8> rgb(static_cast<size_t>(width) * height * 3);
+    for (size_t pixel = 0; pixel < static_cast<size_t>(width) * height; ++pixel) {
+        const size_t src = pixel * 4;
+        const size_t dst = pixel * 3;
+        rgb[dst] = source[src + (rgba ? 0 : 2)];
+        rgb[dst + 1] = source[src + 1];
+        rgb[dst + 2] = source[src + (rgba ? 2 : 0)];
+    }
+    BaristaAppHook::SubmitFrame(std::move(rgb), width, height);
+
+    vmaDestroyBuffer(instance.GetAllocator(), raw_buffer, allocation);
+    vmaDestroyImage(instance.GetAllocator(), frame.image, frame.allocation);
+    device.destroyFramebuffer(frame.framebuffer);
+    device.destroyImageView(frame.image_view);
+#endif
 }
 
 void RendererVulkan::RenderScreenshot() {

@@ -274,6 +274,7 @@ void QtConfig::ReadValues() {
         ReadDebuggingValues();
         ReadWebServiceValues();
         ReadVideoDumpingValues();
+        ReadBaristaValues();
     }
 
     ReadUIValues();
@@ -833,6 +834,15 @@ void QtConfig::ReadVideoDumpingValues() {
     qt_config->endGroup();
 }
 
+void QtConfig::ReadBaristaValues() {
+    qt_config->beginGroup(QStringLiteral("Barista"));
+    ReadBasicSetting(Settings::values.barista_enabled);
+    ReadBasicSetting(Settings::values.barista_socket_path);
+    ReadBasicSetting(Settings::values.barista_screen_mode);
+    ReadBasicSetting(Settings::values.barista_enable_input);
+    qt_config->endGroup();
+}
+
 void QtConfig::ReadUIValues() {
     qt_config->beginGroup(QStringLiteral("UI"));
 
@@ -933,6 +943,7 @@ void QtConfig::SaveValues() {
         SaveDebuggingValues();
         SaveWebServiceValues();
         SaveVideoDumpingValues();
+        SaveBaristaValues();
     }
 
     SaveUIValues();
@@ -1366,6 +1377,15 @@ void QtConfig::SaveVideoDumpingValues() {
     WriteSetting(Settings::QKeys::audio_bitrate,
                  static_cast<unsigned long long>(Settings::values.audio_bitrate), 64000);
 
+    qt_config->endGroup();
+}
+
+void QtConfig::SaveBaristaValues() {
+    qt_config->beginGroup(QStringLiteral("Barista"));
+    WriteBasicSetting(Settings::values.barista_enabled);
+    WriteBasicSetting(Settings::values.barista_socket_path);
+    WriteBasicSetting(Settings::values.barista_screen_mode);
+    WriteBasicSetting(Settings::values.barista_enable_input);
     qt_config->endGroup();
 }
 

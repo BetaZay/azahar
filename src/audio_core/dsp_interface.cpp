@@ -10,6 +10,7 @@
 #include "common/settings.h"
 #include "core/core.h"
 #include "core/dumping/backend.h"
+#include "core/frontend/barista/barista_app_hook.h"
 
 namespace AudioCore {
 
@@ -46,6 +47,14 @@ void DspInterface::OutputFrame(StereoFrame16 frame) {
     } else {
         fifo.Push(frame.data(), frame.size());
     }
+
+#if defined(__linux__) || defined(BOOST_OS_LINUX)
+    if (BaristaAppHook::IsConnected()) {
+        std::span<const s16> audio_span(reinterpret_cast<const s16*>(frame.data()),
+                                        frame.size() * 2);
+        BaristaAppHook::SubmitAudio(audio_span, 2);
+    }
+#endif
 
     auto video_dumper = system.GetVideoDumper();
     if (video_dumper && video_dumper->IsDumping()) {
